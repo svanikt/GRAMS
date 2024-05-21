@@ -55,7 +55,7 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
   double ey[file_numbers.size()];
 
   //path definitions
-  const char *path0 = "./data/";
+  const char *path0 = "/Users/svan/remote_mount/data/";
   const char *path1 = "xmit_trig_bin_grams_";
   const char *path3 = ".dat";
   const char *opath1 = "outfile_";
@@ -70,7 +70,7 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
 
 
     std::string fullpath = std::string(path0) + std::string(path1) + file_number + std::string(path3);
-    std::string ofullpath = std::string(outdir) + std::string(opath1) + file_number + std::string(opath2);
+    std::string ofullpath = std::string(outdir) + std::string("/") + std::string(opath1) + file_number + std::string(opath2);
     
     const char *filePath = fullpath.c_str();
     BLKSIZE *fileBuf; // pointer to buffered data
