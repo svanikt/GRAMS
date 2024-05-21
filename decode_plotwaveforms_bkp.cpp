@@ -13,6 +13,8 @@
 #include <vector>
 #include <cstdlib>
 #include <filesystem>
+#include <TH2D.h>
+
 using namespace std;
 
 
@@ -55,7 +57,7 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
   double ey[file_numbers.size()];
 
   //path definitions
-  const char *path0 = "/Users/svan/remote_mount/data/";
+  const char *path0 = "./data/";
   const char *path1 = "xmit_trig_bin_grams_";
   const char *path3 = ".dat";
   const char *opath1 = "outfile_";
@@ -71,10 +73,10 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
 
     std::string fullpath = std::string(path0) + std::string(path1) + file_number + std::string(path3);
     std::string ofullpath = std::string(outdir) + std::string("/") + std::string(opath1) + file_number + std::string(opath2);
-    
+
     const char *filePath = fullpath.c_str();
     BLKSIZE *fileBuf; // pointer to buffered data
-    FILE *file = NULL; // file pointer 
+    FILE *file = NULL; // file pointer
     long fileSize;
 
     int debug = 0; //set to 1 for more verbose output
@@ -107,6 +109,16 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
     const char * ofilePath = ofullpath.c_str();
 
     //channel vs ADC val histograms
+    TFile* testfile = TFile::Open(ofilePath);
+
+    // Check if the file was successfully opened
+    if (testfile && !testfile->IsZombie()) {
+        std::cout << "The ROOT file exists." << std::endl;
+        testfile->Close();
+        delete testfile;
+        continue;
+    }
+
     TFile* out_file = new TFile(ofilePath,"RECREATE");
 
     //create TTree
@@ -117,6 +129,10 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
     adc_tree->Branch("event_id", &event_id, "event_id/I");
     adc_tree->Branch("adc_count", &adc_count, "adc_count/I");
 
+    TH2D* my_histo[CHs];
+    for(int i=0; i<CHs; i++){
+      my_histo[i] = new TH2D(Form("channel_%i",i),Form("channel_%i",i),2000,0,2000,4096,0,4096);
+    }
 
     int i, e, d;
 
@@ -247,6 +263,8 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
             event_id = hevt;
             adc_count = (fileBuf[i] & 0xfff);
             adc_tree->Fill();
+            my_histo[ch]->Fill(hevt,adc_count);
+
             //printf("ADC value %d \n",fileBuf[i]&0xfff);
             if (datacheck == 1 && (samplecount % 20 == 0)) { //check fake data is correct 
               if ((fileBuf[i] & 0xffff) != 0xa33) { //a33 is the fake data pattern 
@@ -344,6 +362,7 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
             //if(badword=0){
             adc_count = (fileBuf[i] >> 16) & 0xfff;
             adc_tree->Fill();
+            my_histo[ch]->Fill(hevt,adc_count);
             //}
             //printf("ADC value %d \n",fileBuf[i]&0xfff);
             if (datacheck == 1 && (samplecount % 20 == 0)) { //check fake data is correct
@@ -380,8 +399,13 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
     } //end if file exists
     //    }//end loop over dma ops
     //}//end loop over events to read
+
+    for(int i=0; i<CHs; i++){
+      my_histo[i]->Write();
+    }
+    std::cout << "made it?" << std::endl;
     adc_tree->Write();
-    out_file->Close();	
+    out_file->Close();
   }
 return 0;
 
