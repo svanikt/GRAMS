@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
 #include <iterator>
 #include "TFile.h"
 #include <TTree.h>
@@ -14,6 +15,8 @@
 #include <cstdlib>
 #include <filesystem>
 #include <TH2D.h>
+#include <sys/stat.h>
+
 
 using namespace std;
 
@@ -57,7 +60,8 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
   double ey[file_numbers.size()];
 
   //path definitions
-  const char *path0 = "./data/";
+  const char *path0 = "/Users/svan/Software/GRAMS/pGRAMS-code/pGRAMS-readout-integration/data/";
+  // const char *path0 = "/Users/svan/remote_mount/data/";
   const char *path1 = "xmit_trig_bin_grams_";
   const char *path3 = ".dat";
   const char *opath1 = "outfile_";
@@ -109,19 +113,35 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
     const char * ofilePath = ofullpath.c_str();
 
     //channel vs ADC val histograms
-    TFile* testfile = TFile::Open(ofilePath);
+
+	FILE *mfile;
+	bool fflag = false;
+   if (mfile = fopen(ofilePath, "r")) {
+      fclose(mfile);
+      // printf("s file exists");
+	fflag=true;
+   } else {
+      // printf("s file doesn't exist");
+	fflag=false;
+   }
+
+    // TFile* testfile = TFile::Open(ofilePath);
 
     // Check if the file was successfully opened
-    if (testfile && !testfile->IsZombie()) {
+    //if (testfile && !testfile->IsZombie()) {
+	if(fflag==true){
         std::cout << "The ROOT file exists." << std::endl;
-        testfile->Close();
-        delete testfile;
-        continue;
-    }
+        //testfile->Close();
+       // delete testfile;
+       // continue;
+    }else{
 
+      std::cout << "Creating new file" << ofilePath <<std::endl;
     TFile* out_file = new TFile(ofilePath,"RECREATE");
+    std::cout << "File" << ofilePath <<" created"<<std::endl;
 
     //create TTree
+    out_file->cd();
     TTree* adc_tree = new TTree("adc_tree", "ADC Counts");
     int fem_id, channel_id, event_id, adc_count;
     adc_tree->Branch("fem_id", &fem_id, "fem_id/I");
@@ -407,6 +427,7 @@ int decode_plotwaveforms_st(std::string outdir, std::vector<int> file_numbers) {
     adc_tree->Write();
     out_file->Close();
   }
+}
 return 0;
 
 }
